@@ -48,4 +48,17 @@ qtcreator-*
 .#*
 
 # Catkin custom files
+
+# ROS2/Colcon build directories
+install/
+log/
+src/build/
+src/install/
+src/log/
+
+# Common editor directories
+.vscode/
+.DS_Store
+*.swp
+*.swo
 CATKIN_IGNORE
