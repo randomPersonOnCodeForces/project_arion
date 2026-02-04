@@ -1,9 +1,10 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch.actions import TimerAction
 
 def generate_launch_description():
     arion_pkg = get_package_share_directory('arion_simulation')
@@ -41,10 +42,22 @@ def generate_launch_description():
             value='llvmpipe'
         ),
 
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
-            ),
-            launch_arguments={'gz_args': f'-s -r {world_file} -v 4'}.items(),
+        # Run Gazebo in true headless mode (server only, no GUI)
+        ExecuteProcess(
+            cmd=['ign', 'gazebo', '-s', '-r', world_file, '-v', '4'],
+            output='screen'
+        ),
+        # Launch RViz2 with a delay to ensure Gazebo is initialized
+        TimerAction(
+            period=3.0,
+            actions=[
+                Node(
+                    package='rviz2',
+                    executable='rviz2',
+                    name='rviz2',
+                    arguments=['-d', os.path.join(arion_pkg, 'config', 'default.rviz')],
+                    output='screen'
+                )
+            ]
         )
     ])
