@@ -1,63 +1,63 @@
 import os
+import shutil
+import time
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, ExecuteProcess
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import SetEnvironmentVariable, ExecuteProcess, OpaqueFunction
 from launch_ros.actions import Node
-from launch.actions import TimerAction
 
 def generate_launch_description():
     arion_pkg = get_package_share_directory('arion_simulation')
-    aws_warehouse_pkg = get_package_share_directory('aws_robomaker_small_warehouse_world')
-    # Prefer the provided AWS small_warehouse.world which references available models
-    aws_world_file = os.path.join(aws_warehouse_pkg, 'worlds', 'small_warehouse', 'small_warehouse.world')
-    arion_world_file = os.path.join(arion_pkg, 'worlds', 'warehouse.sdf')
-    world_file = aws_world_file if os.path.exists(aws_world_file) else arion_world_file
+    # Use simple floor world to save resources while providing a ground plane
+    # Workaround: Copy file to /tmp to avoid issues with spaces in the path (common in WSL)
+    world_src = os.path.join(arion_pkg, 'worlds', 'simple_floor.sdf')
+    world_file = '/tmp/simple_floor.sdf'
+    shutil.copyfile(world_src, world_file)
 
- 
-    gazebo_models_path = os.path.join(aws_warehouse_pkg, 'models')
-    gazebo_worlds_path = os.path.join(aws_warehouse_pkg, 'worlds')
-    arion_worlds_path = os.path.join(arion_pkg, 'worlds')
+    # Add the package share directory to the resource path so Gazebo can find worlds/models
+    resource_paths = arion_pkg
 
-    # Compose a platform-correct path list (':' on Unix/WSL, ';' on Windows)
-    resource_paths = os.pathsep.join([gazebo_models_path, gazebo_worlds_path, arion_worlds_path])
+    # DEBUG: Print the world file being loaded to verify changes
+    print(f"\n[DEBUG] VERIFICATION: Launching modified start_world.launch.py with world: {world_file}\n")
 
     return LaunchDescription([
         SetEnvironmentVariable(
             name='IGN_GAZEBO_RESOURCE_PATH',
             value=resource_paths
         ),
-        # also set legacy GAZEBO_MODEL_PATH for compatibility
+        # Isolate this simulation on a unique partition to prevent "zombie" processes
+        # or other Gazebo instances from interfering (e.g. loading the wrong world).
         SetEnvironmentVariable(
-            name='GAZEBO_MODEL_PATH',
-            value=os.pathsep.join([gazebo_models_path, gazebo_worlds_path])
-        ),
-        # Disable GPU hardware acceleration to avoid OGRE crashes in WSL
-        SetEnvironmentVariable(
-            name='MESA_GL_VERSION_OVERRIDE',
-            value='4.1'
-        ),
-        SetEnvironmentVariable(
-            name='GALLIUM_DRIVER',
-            value='llvmpipe'
+            name='IGN_PARTITION',
+            value='arion_simulation'
         ),
 
-        # Run Gazebo in true headless mode (server only, no GUI)
+        # Run Gazebo with GUI enabled for debugging
         ExecuteProcess(
-            cmd=['ign', 'gazebo', '-s', '-r', world_file, '-v', '4'],
+            cmd=['ign', 'gazebo', '-r', world_file, '-v', '4'],
+            output='screen',
+            additional_env={
+                'MESA_GL_VERSION_OVERRIDE': '4.1',
+                'GALLIUM_DRIVER': 'llvmpipe',
+            }
+        ),
+
+        # Bridge to connect Gazebo to ROS 2 (Essential for Rviz2 simulation time and transforms)
+        Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            arguments=[
+                '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+                '/tf@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+                '/tf_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
+            ],
+            remappings=[],
             output='screen'
         ),
-        # Launch RViz2 with a delay to ensure Gazebo is initialized
-        TimerAction(
-            period=3.0,
-            actions=[
-                Node(
-                    package='rviz2',
-                    executable='rviz2',
-                    name='rviz2',
-                    arguments=['-d', os.path.join(arion_pkg, 'config', 'default.rviz')],
-                    output='screen'
-                )
-            ]
+
+        # Launch RViz with full path using ros2 command (more reliable in launch context)
+        ExecuteProcess(
+            cmd=['ros2', 'run', 'rviz2', 'rviz2', '-d', os.path.join(arion_pkg, 'config', 'default.rviz')],
+            output='screen'
         )
     ])
