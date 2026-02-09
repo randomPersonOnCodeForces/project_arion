@@ -1,9 +1,9 @@
 import os
 import shutil
-import time
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import SetEnvironmentVariable, ExecuteProcess, OpaqueFunction
+from launch.actions import SetEnvironmentVariable, ExecuteProcess
+from launch.substitutions import Command, FindExecutable
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -13,6 +13,8 @@ def generate_launch_description():
     world_src = os.path.join(arion_pkg, 'worlds', 'simple_floor.sdf')
     world_file = '/tmp/simple_floor.sdf'
     shutil.copyfile(world_src, world_file)
+    xacro_file = os.path.join(arion_pkg, 'urdf', 'turtlebot3_waffle_pi.urdf.xacro')
+    robot_description = Command([FindExecutable(name='xacro'), ' ', xacro_file])
 
     # Add the package share directory to the resource path so Gazebo can find worlds/models
     resource_paths = arion_pkg
@@ -48,10 +50,37 @@ def generate_launch_description():
             executable='parameter_bridge',
             arguments=[
                 '/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock',
+                '/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+                '/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
+                '/scan@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
                 '/tf@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
                 '/tf_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
             ],
             remappings=[],
+            output='screen'
+        ),
+
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            parameters=[
+                {'robot_description': robot_description},
+                {'use_sim_time': True},
+            ],
+            output='screen',
+        ),
+
+        Node(
+            package='ros_gz_sim',
+            executable='create',
+            name='create_entity',
+            arguments=[
+                '-name', 'turtlebot3_waffle_pi',
+                '-topic', 'robot_description',
+                '-x', '0.0',
+                '-y', '0.0',
+                '-z', '0.1',
+            ],
             output='screen'
         ),
 
