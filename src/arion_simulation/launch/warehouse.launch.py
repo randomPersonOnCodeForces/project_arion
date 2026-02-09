@@ -1,3 +1,21 @@
+#!/usr/bin/env python3
+"""
+Comprehensive launch file for the AI Academy Warehouse Demo.
+
+This launch file does the following:
+1. Loads the AWS Small Warehouse world with a TurtleBot3 Waffle Pi robot
+2. Starts Gazebo simulation with physics and sensor plugins enabled
+3. Creates ROS 2 bridges for Gazebo <-> ROS 2 communication
+4. Launches Rviz2 for visualization of sensor data (LaserScan, transforms)
+5. Makes the robot ready for teleop control
+
+Usage:
+    ros2 launch arion_simulation warehouse.launch.py
+    
+Then in another terminal:
+    ros2 run teleop_twist_keyboard teleop_twist_keyboard
+"""
+
 import os
 import shutil
 from pathlib import Path
@@ -25,7 +43,7 @@ def generate_launch_description():
     
     # Print debug information
     print("\n" + "="*80)
-    print("AI ACADEMY WAREHOUSE DEMO - LAUNCHING")
+    print("🎯 AI ACADEMY WAREHOUSE DEMO - LAUNCHING")
     print("="*80)
     print(f"[INFO] Using world file: {world_file}")
     print(f"[INFO] Arion package: {arion_pkg}")
@@ -95,10 +113,6 @@ def generate_launch_description():
                 '/tf_static@tf2_msgs/msg/TFMessage[ignition.msgs.Pose_V',
                 # Odometry from the differential drive plugin
                 '/odom@nav_msgs/msg/Odometry[ignition.msgs.Odometry',
-                # Command velocity: ROS 2 -> Gazebo
-                '/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
-                # Lidar sensor: Gazebo -> ROS 2
-                '/scan@sensor_msgs/msg/LaserScan[ignition.msgs.LaserScan',
             ],
             remappings=[],
             output='screen',
