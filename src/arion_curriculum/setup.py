@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'drive_square = arion_curriculum.drive_square:main',
+            'stop_at_wall = arion_curriculum.stop_at_wall:main',
         ],
     },
 )
