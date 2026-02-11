@@ -10,7 +10,7 @@ class StopAtWall(Node):
 
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 10)
 
-        # "Best Effort" QoS is required to receive data from Gazebo sensors
+        # QoS MUST match Gazebo (Best Effort) or you won't get data
         qos_policy = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT, depth=10)
         self.subscription = self.create_subscription(
             LaserScan, 
@@ -18,25 +18,27 @@ class StopAtWall(Node):
             self.scan_callback, 
             qos_policy)
             
-        self.get_logger().info('Stop At Wall Node Started! Waiting for Lidar data...')
+        self.get_logger().info('Safety Stop Node Active. Move an object in front of the robot!')
 
     def scan_callback(self, msg):
         cmd = Twist()
         
-        # msg.ranges is a list of 360 distance measurements (floats)
-        # Index 0 is directly ahead.
+        # msg.ranges[0] is the distance directly ahead (0 degrees)
+        # We replace 'inf' (infinity) with a large number to avoid errors
         front_dist = msg.ranges[0]
+        if float(front_dist) == float('inf'):
+            front_dist = 999.0
 
-        # =============================================================
-        # STUDENT TODO:
-        # 1. Check if 'front_dist' is less than 0.5 meters.
-        # 2. If yes, stop the robot (linear.x = 0.0).
-        # 3. If no, drive forward safely (linear.x = 0.2).
-        # =============================================================
-
-        # Debug print (Optional)
-        # self.get_logger().info(f'Distance: {front_dist:.2f}m')
-
+        if front_dist < 0.5:
+            # DANGER ZONE
+            cmd.linear.x = 0.0
+            cmd.angular.z = 0.0
+            self.get_logger().info(f'STOPPING! Obstacle at {front_dist:.2f}m')
+        else:
+            # SAFE ZONE
+            cmd.linear.x = 0.2  # Drive forward slowly
+            cmd.angular.z = 0.0
+            
         self.publisher_.publish(cmd)
 
 def main(args=None):
