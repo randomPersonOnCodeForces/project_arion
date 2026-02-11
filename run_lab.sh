@@ -8,3 +8,6 @@ echo "Use 'Ctrl+C' to stop the simulation."
 
 # Launch the main simulation file
 ros2 launch arion_simulation start_world.launch.py
+
+# echo position of the robot
+ros2 topic echo /odom
