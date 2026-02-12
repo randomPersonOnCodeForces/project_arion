@@ -9,4 +9,4 @@ echo "Waiting for robot data..."
 echo "Press 'Ctrl+C' to exit."
 echo ""
 
-ros2 topic echo /odom
+stdbuf -oL ros2 topic echo /odom | grep -E --line-buffered "(sec:|position:|orientation:|  x:|  y:|  z:|  w:)"

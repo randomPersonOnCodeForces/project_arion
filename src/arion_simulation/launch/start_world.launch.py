@@ -22,6 +22,20 @@ def generate_launch_description():
     # DEBUG: Print the world file being loaded to verify changes
     print(f"\n[DEBUG] VERIFICATION: Launching modified start_world.launch.py with world: {world_file}\n")
 
+    import xacro
+    urdf_path = os.path.join(arion_pkg, 'urdf', 'turtlebot3_waffle_pi.urdf.xacro')
+    # Process the Xacro file to get plain XML
+    robot_description_config = xacro.process_file(urdf_path)
+    robot_description_xml = robot_description_config.toxml()
+
+    robot_state_publisher_node = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{'robot_description': robot_description_xml}]
+    )
+
     return LaunchDescription([
         SetEnvironmentVariable(
             name='IGN_GAZEBO_RESOURCE_PATH',
