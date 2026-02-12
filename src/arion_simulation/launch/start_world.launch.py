@@ -5,6 +5,7 @@ from launch import LaunchDescription
 from launch.actions import SetEnvironmentVariable, ExecuteProcess
 from launch.substitutions import Command, FindExecutable
 from launch_ros.actions import Node
+import xacro
 
 def generate_launch_description():
     arion_pkg = get_package_share_directory('arion_simulation')
@@ -22,7 +23,6 @@ def generate_launch_description():
     # DEBUG: Print the world file being loaded to verify changes
     print(f"\n[DEBUG] VERIFICATION: Launching modified start_world.launch.py with world: {world_file}\n")
 
-    import xacro
     urdf_path = os.path.join(arion_pkg, 'urdf', 'turtlebot3_waffle_pi.urdf.xacro')
     # Process the Xacro file to get plain XML
     robot_description_config = xacro.process_file(urdf_path)
@@ -73,16 +73,7 @@ def generate_launch_description():
             remappings=[],
             output='screen'
         ),
-
-        Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            parameters=[
-                {'robot_description': robot_description},
-                {'use_sim_time': True},
-            ],
-            output='screen',
-        ),
+        robot_state_publisher_node,
 
         Node(
             package='ros_gz_sim',
