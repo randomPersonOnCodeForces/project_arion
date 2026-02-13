@@ -195,7 +195,8 @@
   </gazebo>
 
   <gazebo reference="base_scan">
-    <sensor name="hls_lfcd_lds" type="lidar">
+    <sensor name="hls_lfcd_lds" type="gpu_lidar">
+      <ignition_frame_id>base_scan</ignition_frame_id>
       <topic>scan</topic>
       <update_rate>5</update_rate>
       <ray>
