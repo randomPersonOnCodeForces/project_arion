@@ -10,7 +10,6 @@ from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 
-
 class MazeSolver(Node):
     def __init__(self):
         super().__init__('maze_solver')
@@ -43,7 +42,7 @@ class MazeSolver(Node):
         self.waypoints = []
         self.current_waypoint_index = 0
 
-        self.safety_stop_distance = 0.25
+        self.safety_stop_distance = 0.14
         self.waypoint_tolerance = 0.08
         self.k_linear = 0.6
         self.k_angular = 1.8
